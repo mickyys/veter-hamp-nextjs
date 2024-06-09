@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=veter
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - 8080:80
+    environment:
+      - PGADMIN_MAIL=your@email.com
+      - PGADMIN_PW=postgres
+    logging:
+      driver: none

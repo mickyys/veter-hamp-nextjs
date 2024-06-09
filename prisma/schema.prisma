@@ -1,0 +1,265 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  super
+  owner
+  admin
+  user
+  doctor
+  hairdresser
+}
+
+enum VeterinaryType {
+  main
+  branch
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum Days {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+enum Subscription {
+  free
+  basic
+  premium
+}
+
+model Country {
+  id     String   @unique
+  name   String   @unique
+  branch Branch[]
+  Tutor  Tutor[]
+}
+
+model Veterinary {
+  id             String           @unique @default(uuid())
+  name           String
+  subscription   Subscription
+  image          String
+  url            String
+  VeterinaryUser VeterinaryUser[]
+  branch         Branch[]
+  Tutor          Tutor[]
+  Patient        Patient[]
+  reportMedical  reportMedical[]
+  created_at     DateTime         @default(now())
+  created_by     String
+  updated_at     DateTime?
+  updated_by     String?
+}
+
+model Branch {
+  id           String         @unique @default(uuid())
+  veterinary   Veterinary     @relation(fields: [veterinaryId], references: [id])
+  veterinaryId String
+  email        String
+  address      String
+  phone        String
+  city         String
+  country      Country        @relation(fields: [countryId], references: [id])
+  countryId    String
+  type         VeterinaryType @default(main)
+  Schedule     Schedule[]
+  created_at   DateTime       @default(now())
+  created_by   String
+  updated_at   DateTime?
+  updated_by   String?
+}
+
+model Day {
+  id       Int        @id @default(autoincrement())
+  name     Days       @unique
+  Schedule Schedule[]
+}
+
+model Schedule {
+  id         Int       @id @default(autoincrement())
+  day        Day       @relation(fields: [dayId], references: [id])
+  dayId      Int
+  startTime  String
+  endTime    String
+  branch     Branch    @relation(fields: [branchId], references: [id])
+  branchId   String
+  created_at DateTime  @default(now())
+  created_by String
+  updated_at DateTime?
+  updated_by String?
+}
+
+model VeterinaryUser {
+  id           String     @id @default(cuid())
+  veterinary   Veterinary @relation(fields: [veterinaryId], references: [id])
+  veterinaryId String
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+  role         Role       @default(user)
+  created_at   DateTime   @default(now())
+  created_by   String
+  updated_at   DateTime?
+  updated_by   String?
+
+  @@index([veterinaryId, userId])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  VeterinaryUser VeterinaryUser[]
+  reportMedical  reportMedical[]
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Tutor {
+  id           String     @id @default(uuid())
+  veterinary   Veterinary @relation(fields: [veterinaryId], references: [id])
+  veterinaryId String
+  docNumber    String?
+  birthDate    DateTime?
+  name         String
+  lastName     String?
+  address      String?
+  city         String?
+  country      Country?   @relation(fields: [countryId], references: [id])
+  countryId    String?
+  phone        String?
+  email        String?
+  vip          Boolean    @default(false)
+  Patient      Patient[]
+  created_at   DateTime   @default(now())
+  created_by   String
+  updated_at   DateTime?
+  updated_by   String?
+
+  @@index([veterinaryId])
+  @@index([veterinaryId, name])
+  @@index([veterinaryId, docNumber])
+}
+
+model Patient {
+  id            String          @id @default(uuid())
+  veterinary    Veterinary      @relation(fields: [veterinaryId], references: [id])
+  veterinaryId  String
+  tutor         Tutor           @relation(fields: [tutorId], references: [id])
+  tutorId       String
+  record        Int?
+  name          String
+  birthDate     DateTime?
+  species       String?
+  race          String?
+  gender        Gender?
+  microship     String?
+  reportMedical reportMedical[]
+  created_at    DateTime        @default(now())
+  created_by    String
+  updated_at    DateTime?
+  updated_by    String?
+
+  @@index([veterinaryId])
+  @@index([veterinaryId, tutorId])
+  @@index([veterinaryId, name])
+}
+
+model reportMedical {
+  id                    String     @id @default(uuid())
+  veterinary            Veterinary @relation(fields: [veterinaryId], references: [id])
+  veterinaryId          String
+  patient               Patient    @relation(fields: [patientId], references: [id])
+  patientId             String
+  date                  DateTime
+  reasons               String
+  doctor                User       @relation(fields: [userId], references: [id])
+  userId                String
+  reason                String
+  syptomsDate           DateTime
+  physicalExam          String
+  firstTime             Boolean    @default(true)
+  heartRate             String //frecuencua cardiaca
+  breathingFrecuency    String //frecuencia respiratoria
+  bloodPresure          String //presion arterial
+  weight                String
+  temperature           String
+  mucousMembranes       String
+  presumptiveDiagnosis  String
+  differentialDiagnosis String
+  laboratoryTest        String
+  defintiveDiagnosis    String
+  medication            String
+  recipe                String
+  created_at            DateTime   @default(now())
+  created_by            String
+  updated_at            DateTime?
+  updated_by            String?
+
+  @@index([veterinaryId])
+  @@index([veterinaryId, patientId])
+}
